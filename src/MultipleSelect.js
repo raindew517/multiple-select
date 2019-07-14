@@ -7,13 +7,22 @@ import {s, sprintf} from './utils/sprintf.js'
 
 class MultipleSelect {
   constructor ($el, options) {
-    const el = $el[0]
-    const name = el.getAttribute('name') || options.name || ''
-
+    this.$el = $el
     this.options = $.extend({}, defaults, options)
+  }
+
+  init () {
+    this.initContainer()
+    this.initData()
+    this.initDrop()
+  }
+
+  initContainer () {
+    const el = this.$el[0]
+    const name = el.getAttribute('name') || this.options.name || ''
 
     // hide select element
-    this.$el = $el.hide()
+    this.$el = this.$el.hide()
 
     // label element
     this.$label = this.$el.closest('label')
@@ -82,50 +91,56 @@ class MultipleSelect {
     this.options.onAfterCreate()
   }
 
-  init () {
-    const $ul = $('<ul></ul>')
-
-    this.$drop.html('')
-
-    if (this.options.filter) {
-      this.$drop.append(`
-        <div class="ms-search">
-          <input type="text" autocomplete="off" autocorrect="off"
-            autocapitalize="off" spellcheck="false"
-            ${sprintf`placeholder="${s}"`(this.options.filterPlaceholder)}>
-        </div>
-      `)
-    }
-
-    if (this.options.selectAll && !this.options.single) {
-      $ul.append([
-        '<li class="ms-select-all">',
-        '<label>',
-        sprintf`<input type="checkbox" ${s} />`(this.selectAllName),
-        `<span>${this.options.formatSelectAll()}</span>`,
-        '</label>',
-        '</li>'
-      ].join(''))
-    }
+  initData () {
+    const data = []
 
     $.each(this.$el.children(), (i, elm) => {
-      $ul.append(this.optionToHtml(i, elm))
+      const row = this.initRow(i, elm)
+      if (row) {
+        data.push(this.initRow(i, elm))
+      }
     })
-    $ul.append(sprintf`<li class="ms-no-results">${s}</li>`(
-      this.options.formatNoMatchesFound()
-    ))
-    this.$drop.append($ul)
 
-    this.$drop.find('ul').css('max-height', `${this.options.maxHeight}px`)
-    this.$drop.find('.multiple').css('width', `${this.options.multipleWidth}px`)
+    this.options.data = data
+    this.data = data
+  }
 
-    this.$searchInput = this.$drop.find('.ms-search input')
-    this.$selectAll = this.$drop.find(`input[${this.selectAllName}]`)
-    this.$selectGroups = this.$drop.find(`input[${this.selectGroupName}]`)
-    this.$selectItems = this.$drop.find(`input[${this.selectItemName}]:enabled`)
-    this.$disableItems = this.$drop.find(`input[${this.selectItemName}]:disabled`)
-    this.$noResults = this.$drop.find('.ms-no-results')
+  initRow (i, elm, group, groupDisabled) {
+    const row = {}
+    const $elm = $(elm)
 
+    if ($elm.is('option')) {
+      row.type = 'option'
+      row.group = group
+      row.text = this.options.textTemplate($elm)
+      row.value = elm.value
+      row.selected = elm.selected
+      row.disabled = groupDisabled || elm.disabled
+      row.classes = elm.getAttribute('class') || ''
+      row.title = elm.getAttribute('title')
+
+      return row
+    }
+
+    if ($elm.is('optgroup')) {
+      row.type = 'optgroup'
+      row.group = `group_${i}`
+      row.label = this.options.labelTemplate($elm)
+      row.disabled = elm.disabled
+      row.children = []
+
+      $.each($elm.children(), (j, elem) => {
+        row.children.push(this.initRow(j, elem, row.group, row.disabled))
+      })
+
+      return row
+    }
+
+    return null
+  }
+
+  initDrop () {
+    this.initList()
     this.events()
     this.updateSelectAll(true)
     this.update(true)
@@ -144,68 +159,107 @@ class MultipleSelect {
     }
   }
 
-  optionToHtml (i, elm, group, groupDisabled) {
-    const $elm = $(elm)
-    const el = $elm[0]
-    const classes = el.getAttribute('class') || ''
-    const title = sprintf`title="${s}"`(el.getAttribute('title'))
-    const multiple = this.options.multiple ? 'multiple' : ''
-    let disabled
-    const type = this.options.single ? 'radio' : 'checkbox'
+  initList () {
+    const html = []
 
-    if ($elm.is('option')) {
-      const text = this.options.textTemplate($elm)
-      const {value, selected} = el
-      const customStyle = this.options.styler(value)
-      const style = customStyle ? sprintf`style="${s}"`(customStyle) : ''
+    if (this.options.filter) {
+      html.push(`
+        <div class="ms-search">
+          <input type="text" autocomplete="off" autocorrect="off"
+            autocapitalize="off" spellcheck="false"
+            ${sprintf`placeholder="${s}"`(this.options.filterPlaceholder)}>
+        </div>
+      `)
+    }
 
-      disabled = groupDisabled || el.disabled
+    html.push('<ul>')
 
-      const $el = $([
-        sprintf`<li class="${s} ${s}" ${s} ${s}>`(multiple, classes, title, style),
-        sprintf`<label class="${s}">`(disabled ? 'disabled' : ''),
-        sprintf`<input type="${s}" ${s}${s}${s}${s}>`(
-          type, this.selectItemName,
-          selected ? ' checked="checked"' : '',
-          disabled ? ' disabled="disabled"' : '',
-          sprintf` data-group="${s}"`(group)
-        ),
-        sprintf`<span>${s}</span>`(text),
+    if (this.options.selectAll && !this.options.single) {
+      html.push([
+        '<li class="ms-select-all">',
+        '<label>',
+        sprintf`<input type="checkbox" ${s} />`(this.selectAllName),
+        `<span>${this.options.formatSelectAll()}</span>`,
         '</label>',
         '</li>'
       ].join(''))
-      $el.find('input').val(value)
-      return $el
     }
-    if ($elm.is('optgroup')) {
-      const label = this.options.labelTemplate($elm)
-      const $group = $('<div/>')
 
-      group = `group_${i}`;
-      ({disabled} = el)
+    html.push(this.data.map(row => {
+      return this.initListItem(row)
+    }).join(''))
 
-      $group.append([
+    if (!this.data.length) {
+      html.push(sprintf`<li class="ms-no-results">${s}</li>`(
+        this.options.formatNoMatchesFound()
+      ))
+    }
+
+    html.push('</ul>')
+
+    this.$drop.html(html.join(''))
+    this.$drop.find('ul').css('max-height', `${this.options.maxHeight}px`)
+    this.$drop.find('.multiple').css('width', `${this.options.multipleWidth}px`)
+
+    this.$searchInput = this.$drop.find('.ms-search input')
+    this.$selectAll = this.$drop.find(`input[${this.selectAllName}]`)
+    this.$selectGroups = this.$drop.find(`input[${this.selectGroupName}]`)
+    this.$selectItems = this.$drop.find(`input[${this.selectItemName}]:enabled`)
+    this.$disableItems = this.$drop.find(`input[${this.selectItemName}]:disabled`)
+    this.$noResults = this.$drop.find('.ms-no-results')
+  }
+
+  initListItem (row) {
+    const title = sprintf`title="${s}"`(row.title)
+    const multiple = this.options.multiple ? 'multiple' : ''
+    const type = this.options.single ? 'radio' : 'checkbox'
+
+    if (row.type === 'option') {
+      const customStyle = this.options.styler(row.value)
+      const style = customStyle ? sprintf`style="${s}"`(customStyle) : ''
+
+      return [
+        sprintf`<li class="${s} ${s}" ${s} ${s}>`(multiple, row.classes, title, style),
+        sprintf`<label class="${s}">`(row.disabled ? 'disabled' : ''),
+        sprintf`<input type="${s}" value="${s}" ${s}${s}${s}${s}>`(
+          type,
+          row.value,
+          this.selectItemName,
+          row.selected ? ' checked="checked"' : '',
+          row.disabled ? ' disabled="disabled"' : '',
+          sprintf` data-group="${s}"`(row.group)
+        ),
+        sprintf`<span>${s}</span>`(row.text),
+        '</label>',
+        '</li>'
+      ].join('')
+    }
+
+    if (row.type === 'optgroup') {
+      const html = []
+
+      html.push([
         '<li class="group">',
         sprintf`<label class="optgroup ${s}" data-group="${s}">`(
-          disabled ? 'disabled' : '', group
+          row.disabled ? 'disabled' : '', row.group
         ),
         this.options.hideOptgroupCheckboxes || this.options.single
           ? ''
           : sprintf`<input type="checkbox" ${s} ${s}>`(
-            this.selectGroupName, disabled ? 'disabled="disabled"' : ''
+            this.selectGroupName, row.disabled ? 'disabled="disabled"' : ''
           ),
-        label,
+        row.label,
         '</label>',
         '</li>'
       ].join(''))
 
-      $.each($elm.children(), (j, elem) => {
-        $group.append(this.optionToHtml(j, elem, group, disabled))
-      })
-      return $group.html()
+      html.push(row.children.map(child => {
+        return this.initListItem(child)
+      }).join(''))
+
+      return html.join('')
     }
-    // Append nothing
-    return undefined
+    return ''
   }
 
   events () {
