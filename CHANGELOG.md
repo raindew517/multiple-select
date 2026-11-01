@@ -1,5 +1,80 @@
 ## Changelog
 
+### 2.4.0
+
+* **New:** Added `filterOnly` option to select only a single option.
+* **New:** Added `maxWidth` option to limit the auto width.
+* **New:** Auto refresh select width when the width attribute is `auto`.
+* **Update:** Upgraded jQuery peer dependency to `>=3 <5` for jQuery 4 compatibility.
+* **Update:** Fixed no-results padding in Bootstrap theme.
+
+### 2.3.1
+
+* **Update:** Replaced jQuery utilities with ES6+ alternatives.
+* **Update:** Fixed Bootstrap theme checkbox focus state outline being clipped.
+
+### 2.3.0
+
+* **New:** Added `filterOptions` option with localization support.
+* **New:** Enhanced Bootstrap theme with CSS variables.
+* **Update:** Implemented disabled select styling in Bootstrap theme.
+* **Update:** Fixed child visibility calculation with dividers.
+
+### 2.2.0
+
+* **New:** Added Bootstrap 5 dark theme support.
+* **New:** Added short format support for all locales.
+* **New:** Added `de-DE` and `ko-KR` locales.
+* **Update:** Improved selector performance for large data cases.
+* **Update:** Fixed close button display issue in Bootstrap theme.
+* **Update:** Fixed locale matching logic to properly handle short format locales.
+
+### 2.1.1
+
+* **New:** Added vue3 and bootstrap5 support.
+* **New:** Added lint for js, scss, spell and editor.
+* **New:** Added `classInput` option to show class of input radio/checkbox.
+* **New:** Added `filterSelectAll` option to show/hide the select all checkbox in the filter.
+* **New:** Added `resetFilter` method to reset the filter.
+* **New:** Added id-ID locale.
+* **Update:** Updated `placeholder` class to `ms-placeholder`.
+* **Update:** Fixed alignment issue of single mode in the bootstrap theme.
+
+### 2.0.9
+
+- **New:** Added `vue3` support.
+- **Update:** Fixed `v-model` select bug with proxy object.
+- **Update:** Fixed children's element change, not updated the select bug.
+- **Update:** Fixed data without clone change refresh the select bug.
+- **Update:** Fix data watch deep caused by the selected bug.
+- **Update:** Improved the indentation style of multiple select with group mode.
+
+### 1.7.0
+
+- **New:** Added `onBeforeClick` event.
+- **New:** Added `$.fn.multipleSelect.Constructor` to support extension.
+- **New:** Added keyboard actions.
+- **New:** Added `ja-JP` locale.
+- **Update:** Updated `onFilter` event parameter to original search.
+
+### 1.6.0
+
+- **New:** Added `setSelects` by text support.
+- **New:** Added `divider` option support.
+- **New:** Added `classes`, `classPrefix` and `size` options.
+- **New:** Added `dropdown` support for bootstrap theme.
+- **New:** Added class for `ms-parent` when open the select.
+- **New:** Added `getData` method.
+- **New:** Added `fr-FR`, `vi-VN`, `ru-RU`, `hu-HU`, `da-DK`, `pt-BR` and `cz-CS` locales.
+- **New:** Added index.d.ts to support TypeScript.
+- **Update:** Fixed one item of group selected bug.
+- **Update:** Fixed not check group with no children bug.
+- **Update:** Fixed clear button display error.
+- **Update:** Fixed init multiple times bug in vue component.
+- **Update:** Updated `font-size` to use percent instead.
+- **Update:** Updated the default parameter of `customFilter` option.
+- **Update:** Updated the `BLOCK_ROWS` to 500.
+
 ### 1.5.2
 
 - **Update:** Fixed virtual scroll bottom select bug.
@@ -165,7 +240,7 @@
 * [bug] Fix #45, #64: update width option to support a percentage setting.
 * [bug] Trigger the checkbox on the entire line.
 * [bug] Added `noMatchesFound` option.
-* [bug] Update `seperator` to `separator`.
+* [bug] Update `separator` typo.
 * [enh] Allow object of options along with initial method.
 * [enh] Add a `filterAcceptOnEnter` option.
 * [enh] Put class on ms-parent div instead of ul.
@@ -224,7 +299,7 @@
 
 ### 1.0.5
 
-* Update the button text witdh.
+* Update the button text width.
 * Add keyboard support.
 
 ### 1.0.4

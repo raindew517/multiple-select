@@ -4,7 +4,7 @@
     :multiple="multiple"
     :disabled="disabled"
   >
-    <slot/>
+    <slot />
   </select>
 </template>
 
@@ -17,10 +17,25 @@ const deepCopy = arg => {
   return $.extend(true, Array.isArray(arg) ? [] : {}, arg)
 }
 
+const getEventNames = () => {
+  const events = []
+
+  for (const event in $.fn.multipleSelect.defaults) {
+    if (/^on[A-Z]/.test(event)) {
+      events.push(event.replace(/([A-Z])/g, '-$1').toLowerCase())
+    }
+  }
+  return events
+}
+
 export default {
   name: 'MultipleSelect',
 
   props: {
+    modelValue: {
+      type: [String, Number, Array, Object],
+      default: undefined
+    },
     value: {
       type: [String, Number, Array, Object],
       default: undefined
@@ -41,6 +56,14 @@ export default {
       type: [Number, String],
       default: undefined
     },
+    maxWidth: {
+      type: [Number, String],
+      default: undefined
+    },
+    size: {
+      type: String,
+      default: undefined
+    },
     data: {
       type: [Array, Object],
       default () {
@@ -55,18 +78,28 @@ export default {
     }
   },
 
+  emits: ['update:modelValue', 'change', ...getEventNames()],
+
   data () {
     return {
-      currentValue: this.value
+      currentValue: this.value === undefined ? this.modelValue : this.value,
+      children: []
     }
   },
 
   watch: {
-    value () {
-      if (this.currentValue === this.value) {
+    modelValue (val) {
+      if (this.currentValue === val) {
         return
       }
-      this.currentValue = this.value
+      this.currentValue = val
+      this._initDefaultValue()
+    },
+    value (val) {
+      if (this.currentValue === val) {
+        return
+      }
+      this.currentValue = val
       this._initDefaultValue()
     },
     multiple () {
@@ -84,6 +117,9 @@ export default {
     width () {
       this._initSelectValue()
     },
+    maxWidth () {
+      this._initSelectValue()
+    },
     options: {
       handler () {
         this._initSelectValue()
@@ -99,18 +135,33 @@ export default {
     }
   },
 
-  beforeUpdate () {
-    if (this.slotDefault || this.slotDefault !== this.$slots.default) {
-      this.slotDefault = this.$slots.default
-      this.$nextTick(() => {
-        this._refresh()
-        this._initSelectValue()
-      })
+  updated () {
+    const children = [
+      ...this.$el.options,
+      ...this.$el.getElementsByTagName('optgroup')
+    ]
+
+    if (
+      children.length !== this.children.length ||
+      children.some((item, index) => item !== this.children[index])
+    ) {
+      this._update()
+      this.observer.disconnect()
+
+      for (const child of children) {
+        this.observer.observe(child, {
+          attributes: true,
+          childList: true,
+          subtree: true
+        })
+      }
+      this.children = children
     }
   },
 
-  destroyed () {
+  unmounted () {
     this.destroy(true)
+    this.observer.disconnect()
   },
 
   mounted () {
@@ -127,8 +178,12 @@ export default {
         this.currentValue = selects.length ? selects[0] : undefined
       }
 
-      this.$emit('input', this.currentValue)
+      this.$emit('update:modelValue', this.currentValue)
       this.$emit('change', this.currentValue)
+    })
+
+    this.observer = new MutationObserver(() => {
+      this._update()
     })
 
     if (
@@ -139,7 +194,7 @@ export default {
     ) {
       this.currentValue = this.$select.val()
 
-      this.$emit('input', this.currentValue)
+      this.$emit('update:modelValue', this.currentValue)
       this.$emit('change', this.currentValue)
     }
 
@@ -155,6 +210,13 @@ export default {
   },
 
   methods: {
+    _update () {
+      this.$nextTick(() => {
+        this._refresh()
+        this._initSelectValue()
+      })
+    },
+
     _initSelectValue () {
       this._initSelect()
 
@@ -169,12 +231,19 @@ export default {
     },
 
     _initSelect () {
+      if (!this.$select) {
+        // before mounted
+        return
+      }
       const options = {
         ...deepCopy(this.options),
         single: !this.multiple,
         width: this.width,
+        maxWidth: this.maxWidth,
+        size: this.size,
         data: this.data
       }
+
       if (!this._hasInit) {
         this.$select.multipleSelect(options)
         this._hasInit = true
@@ -185,13 +254,18 @@ export default {
 
     _initDefaultValue () {
       this.$nextTick(() => {
-        this.setSelects(Array.isArray(this.currentValue) ?
-          this.currentValue : [this.currentValue], null, true)
+        try {
+          this.setSelects(Array.isArray(this.currentValue) ?
+            this.currentValue : [this.currentValue], null, true)
+        } catch (e) {
+          // ignore error
+        }
       })
     },
 
     ...(() => {
       const res = {}
+
       for (const method of $.fn.multipleSelect.methods) {
         res[method] = function (...args) {
           return this.$select.multipleSelect(method, ...args)
@@ -201,11 +275,9 @@ export default {
     })(),
 
     _refresh () {
-      if (this.$slots.default) {
-        for (const el of this.$slots.default) {
-          if (el.elm.nodeName === 'OPTION' && el.data.domProps && el.data.domProps.value) {
-            $(el.elm).data('value', el.data.domProps.value)
-          }
+      for (const el of this.$el.options) {
+        if (el.value) {
+          $(el).data('value', el.value)
         }
       }
     },

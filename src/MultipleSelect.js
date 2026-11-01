@@ -2,17 +2,19 @@ import Constants from './constants/index.js'
 import VirtualScroll from './virtual-scroll/index.js'
 import {
   compareObjects,
-  removeDiacritics,
+  extend,
   findByParam,
-  setDataKeys,
+  getDocumentClickEvent,
+  removeDiacritics,
   removeUndefined,
-  getDocumentClickEvent
+  setDataKeys,
+  toRaw
 } from './utils/index.js'
 
 class MultipleSelect {
   constructor ($el, options) {
     this.$el = $el
-    this.options = $.extend({}, Constants.DEFAULTS, options)
+    this.options = extend({}, Constants.DEFAULTS, options)
   }
 
   init () {
@@ -28,7 +30,7 @@ class MultipleSelect {
 
   initLocale () {
     if (this.options.locale) {
-      const {locales} = $.fn.multipleSelect
+      const { locales } = $.fn.multipleSelect
       const parts = this.options.locale.split(/-|_/)
 
       parts[0] = parts[0].toLowerCase()
@@ -36,12 +38,27 @@ class MultipleSelect {
         parts[1] = parts[1].toUpperCase()
       }
 
+      let localesToExtend = {}
+
       if (locales[this.options.locale]) {
-        $.extend(this.options, locales[this.options.locale])
+        localesToExtend = locales[this.options.locale]
       } else if (locales[parts.join('-')]) {
-        $.extend(this.options, locales[parts.join('-')])
+        localesToExtend = locales[parts.join('-')]
       } else if (locales[parts[0]]) {
-        $.extend(this.options, locales[parts[0]])
+        localesToExtend = locales[parts[0]]
+      }
+
+      this._defaultLocales = this._defaultLocales || {}
+      for (const [formatName, func] of Object.entries(localesToExtend)) {
+        const defaultLocale = Object.prototype.hasOwnProperty.call(this._defaultLocales, formatName) ?
+          this._defaultLocales[formatName] : Constants.DEFAULTS[formatName]
+
+        if (this.options[formatName] !== defaultLocale) {
+          continue
+        }
+
+        this.options[formatName] = func
+        this._defaultLocales[formatName] = func
       }
     }
   }
@@ -49,6 +66,17 @@ class MultipleSelect {
   initContainer () {
     const el = this.$el[0]
     const name = el.getAttribute('name') || this.options.name || ''
+
+    if (this.options.classes) {
+      this.$el.addClass(this.options.classes)
+    }
+    if (this.options.classPrefix) {
+      this.$el.addClass(this.options.classPrefix)
+
+      if (this.options.size) {
+        this.$el.addClass(`${this.options.classPrefix}-${this.options.size}`)
+      }
+    }
 
     // hide select element
     this.$el.hide()
@@ -69,7 +97,7 @@ class MultipleSelect {
 
     // restore class and title from select element
     this.$parent = $(`
-      <div class="ms-parent ${el.getAttribute('class') || ''}"
+      <div class="ms-parent ${el.getAttribute('class') || ''} ${this.options.classes}"
       title="${el.getAttribute('title') || ''}" />
     `)
 
@@ -77,16 +105,26 @@ class MultipleSelect {
     this.options.placeholder = this.options.placeholder ||
       el.getAttribute('placeholder') || ''
 
-    this.tabIndex = el.getAttribute('tabindex')
-    let tabIndex = ''
-    if (this.tabIndex !== null) {
-      this.$el.attr('tabindex', -1)
-      tabIndex = this.tabIndex && `tabindex="${this.tabIndex}"`
+    // Cache the original tabindex in jQuery data so we can restore it on
+    // destroy and transfer it to the choice button. The native <select> is
+    // hidden via `.ms-offscreen` (not display:none), so it stays in the tab
+    // order; we set it to -1 and move focus to the visible `.ms-choice`.
+    // Caching avoids re-reading the -1 on re-init (e.g. Vue refreshOptions).
+    if (this.$el.data('ms-tabindex') === undefined) {
+      this.$el.data('ms-tabindex', el.getAttribute('tabindex'))
     }
+    this.tabIndex = this.$el.data('ms-tabindex')
+
+    // Move the original tabindex to the choice button. Explicit empty-string
+    // check needed since "-1"/"0" are truthy.
+    const tabIndex = this.tabIndex !== null && this.tabIndex !== '' ?
+      ` tabindex="${this.tabIndex}"` : ''
+
+    this.$el.attr('tabindex', -1)
 
     this.$choice = $(`
       <button type="button" class="ms-choice"${tabIndex}>
-      <span class="placeholder">${this.options.placeholder}</span>
+      <span class="ms-placeholder">${this.options.placeholder}</span>
       ${this.options.showClear ? '<div class="icon-close"></div>' : ''}
       <div class="icon-caret"></div>
       </button>
@@ -114,6 +152,7 @@ class MultipleSelect {
 
     if (!this.options.keepOpen) {
       const clickEvent = getDocumentClickEvent(this.$el.attr('id'))
+
       $(document).off(clickEvent).on(clickEvent, e => {
         if (
           $(e.target)[0] === this.$choice[0] ||
@@ -123,8 +162,8 @@ class MultipleSelect {
         }
         if (
           ($(e.target)[0] === this.$drop[0] ||
-          ($(e.target).parents('.ms-drop')[0] !== this.$drop[0] &&
-          e.target !== el)) &&
+          $(e.target).parents('.ms-drop')[0] !== this.$drop[0] &&
+          e.target !== el) &&
           this.options.isOpen
         ) {
           this.close()
@@ -145,7 +184,15 @@ class MultipleSelect {
               value: it
             }
           }
-          return it
+
+          if (it.children?.length) {
+            return {
+              ...it,
+              children: it.children.map(it => ({ ...it }))
+            }
+          }
+
+          return { ...it }
         })
       } else if (typeof this.options.data === 'object') {
         for (const [value, text] of Object.entries(this.options.data)) {
@@ -157,19 +204,25 @@ class MultipleSelect {
         this.data = data
       }
     } else {
-      $.each(this.$el.children(), (i, elm) => {
+      for (const [i, elm] of Array.from(this.$el.children()).entries()) {
         const row = this.initRow(i, elm)
+
         if (row) {
-          data.push(this.initRow(i, elm))
+          data.push(row)
         }
-      })
+      }
 
       this.options.data = data
       this.data = data
       this.fromHtml = true
     }
 
+    this.disabledSorted = false
     this.dataTotal = setDataKeys(this.data)
+
+    if (this.options.maxVisible !== undefined) {
+      this.applyMaxVisible()
+    }
   }
 
   initRow (i, elm, groupDisabled) {
@@ -185,8 +238,8 @@ class MultipleSelect {
       row.disabled = groupDisabled || elm.disabled
       row.classes = elm.getAttribute('class') || ''
       row.title = elm.getAttribute('title') || ''
-      if ($elm.data('value')) {
-        row._value = $elm.data('value') // value for object
+      if (elm._value || $elm.data('value')) {
+        row._value = elm._value || $elm.data('value') // value for object
       }
       if (Object.keys($elm.data()).length) {
         row._data = $elm.data()
@@ -210,9 +263,9 @@ class MultipleSelect {
         row._data = $elm.data()
       }
 
-      $.each($elm.children(), (j, elem) => {
+      for (const [j, elem] of Array.from($elm.children()).entries()) {
         row.children.push(this.initRow(j, elem, row.disabled))
-      })
+      }
 
       return row
     }
@@ -225,9 +278,8 @@ class MultipleSelect {
 
     for (const row of this.data) {
       if (row.type === 'optgroup') {
-        const selectedCount = row.children.filter(child => {
-          return child.selected && !child.disabled && child.visible
-        }).length
+        const selectedCount = row.children.filter(child =>
+          child.selected && !child.disabled && child.visible && !child.divider).length
 
         if (row.children.length) {
           row.selected = !this.options.single && selectedCount && selectedCount ===
@@ -235,14 +287,18 @@ class MultipleSelect {
         }
 
         selectedTotal += selectedCount
-      } else {
+      } else if (!row.divider) {
         selectedTotal += row.selected && !row.disabled && row.visible ? 1 : 0
       }
     }
 
-    this.allSelected = this.data.filter(row => {
-      return row.selected && !row.disabled && row.visible
-    }).length === this.data.filter(row => !row.disabled && row.visible && !row.divider).length
+    const selectableVisibleCount = this.data.filter(row =>
+      !row.disabled && row.visible && !row.divider).length
+    const selectedVisibleCount = this.data.filter(row =>
+      row.selected && !row.disabled && row.visible && !row.divider).length
+
+    this.allSelected = selectableVisibleCount > 0 &&
+      selectedVisibleCount === selectableVisibleCount
 
     if (!ignoreTrigger) {
       if (this.allSelected) {
@@ -255,12 +311,24 @@ class MultipleSelect {
 
   initFilter () {
     this.filterText = ''
+    this.currentFilter = 'all'
+
+    // Options beyond maxVisible are only reachable through a specific search
+    if (
+      this.options.maxVisible !== undefined &&
+      this.dataTotal > this.options.maxVisible &&
+      !this.options.filter
+    ) {
+      this.options.filter = true
+      return
+    }
 
     if (this.options.filter || !this.options.filterByDataLength) {
       return
     }
 
     let length = 0
+
     for (const option of this.data) {
       if (option.type === 'optgroup') {
         length += option.children.length
@@ -302,6 +370,21 @@ class MultipleSelect {
             placeholder="${this.options.filterPlaceholder}">
         </div>
       `)
+
+      // Only show filter options for multiple select when filterOptions is true
+      if (!this.options.single && this.options.filterOptions) {
+        const allText = this.options.formatFilterAll()
+        const selectedText = this.options.formatFilterSelected()
+        const unselectedText = this.options.formatFilterUnselected()
+
+        html.push(`
+          <div class="ms-filter-options">
+            <span class="ms-filter-option active" data-filter="all" tabindex="0" role="button" aria-pressed="true">${allText}</span>
+            <span class="ms-filter-option" data-filter="selected" tabindex="0" role="button" aria-pressed="false">${selectedText}</span>
+            <span class="ms-filter-option" data-filter="unselected" tabindex="0" role="button" aria-pressed="false">${unselectedText}</span>
+          </div>
+        `)
+      }
     }
 
     html.push('<ul></ul>')
@@ -313,8 +396,20 @@ class MultipleSelect {
   }
 
   initListItems () {
-    const rows = this.getListRows()
+    let rows = this.getListRows()
     let offset = 0
+
+    if (this.options.maxVisibleDisabled !== undefined && !this.disabledSorted) {
+      // Disabled options are moved to the end so that the hidden ones are
+      // grouped together. Virtual scroll lists do not render the
+      // expand/collapse control, so their original order is kept until
+      // filtering brings the list below the virtual scroll threshold.
+      if (rows.length <= Constants.BLOCK_ROWS * Constants.CLUSTER_BLOCKS) {
+        this.disabledSorted = true
+        this.sortDisabledOptions()
+        rows = this.getListRows()
+      }
+    }
 
     if (this.options.selectAll && !this.options.single) {
       offset = -1
@@ -326,6 +421,7 @@ class MultipleSelect {
       }
 
       const dropVisible = this.$drop.is(':visible')
+
       if (!dropVisible) {
         this.$drop.css('left', -10000).show()
       }
@@ -336,8 +432,10 @@ class MultipleSelect {
         if (this.updateDataStart < 0) {
           this.updateDataStart = 0
         }
-        if (this.updateDataEnd > this.data.length) {
-          this.updateDataEnd = this.data.length
+        // updateData contains only the rendered option rows, so it can be
+        // shorter than data when maxVisible or filtering hides rows
+        if (this.updateDataEnd > this.updateData.length) {
+          this.updateDataEnd = this.updateData.length
         }
       }
 
@@ -362,17 +460,63 @@ class MultipleSelect {
       this.updateDataEnd = this.updateData.length
       this.virtualScroll = null
     }
+    this.initExpandCollapse()
     this.events()
+  }
+
+  sortDisabledOptions () {
+    this.data.sort((a, b) => {
+      // Optgroups count as enabled so the comparator stays consistent and
+      // disabled options are always moved to the very end
+      const aDisabled = a.type !== 'optgroup' && a.disabled
+      const bDisabled = b.type !== 'optgroup' && b.disabled
+
+      return (aDisabled ? 1 : 0) - (bDisabled ? 1 : 0)
+    })
+  }
+
+  initExpandCollapse () {
+    if (this.options.maxVisibleDisabled === undefined || this.virtualScroll) {
+      return
+    }
+
+    this.$ul.append(`
+      <li class="ms-expand-collapse" tabindex="0">
+        <button type="button" class="ms-expand">${this.options.formatExpand()}</button>
+        <button type="button" class="ms-collapse" style="display:none">${this.options.formatCollapse()}</button>
+      </li>
+    `)
+
+    this.$expandCollapse = this.$ul.find('.ms-expand-collapse')
+    this.$expand = this.$ul.find('.ms-expand')
+    this.$collapse = this.$ul.find('.ms-collapse')
+
+    this.$expand.off('click').on('click', () => {
+      this.expandDisabledList()
+    })
+
+    this.$collapse.off('click').on('click', () => {
+      this.collapseDisabledList()
+    })
   }
 
   getListRows () {
     const rows = []
 
-    if (this.options.selectAll && !this.options.single) {
+    if (
+      this.options.selectAll &&
+      !this.options.single &&
+      (this.options.filterSelectAll || !this.filterText)
+    ) {
       rows.push(`
-        <li class="ms-select-all">
+        <li class="ms-select-all" tabindex="0">
         <label>
-        <input type="checkbox" ${this.selectAllName}${this.allSelected ? ' checked="checked"' : ''} />
+        <input
+          type="checkbox" ${this.selectAllName}
+          ${this.allSelected ? ' checked="checked"' : ''}
+          ${this.options.classInput ? `class="${this.options.classInput}"` : ''}
+          tabindex="-1"
+        />
         <span>${this.options.formatSelectAll()}</span>
         </label>
         </li>
@@ -383,6 +527,14 @@ class MultipleSelect {
     this.data.forEach(row => {
       rows.push(...this.initListItem(row))
     })
+
+    if (
+      this.options.maxVisible !== undefined &&
+      this.visibleTotal > this.options.maxVisible
+    ) {
+      rows.push(`<li class="ms-showing-count">${this.options.formatShowingCount(
+        this.options.maxVisible, this.visibleTotal)}</li>`)
+    }
 
     rows.push(`<li class="ms-no-results">${this.options.formatNoMatchesFound()}</li>`)
 
@@ -420,6 +572,8 @@ class MultipleSelect {
           data-key="${row._key}"
           ${row.selected ? ' checked="checked"' : ''}
           ${row.disabled ? ' disabled="disabled"' : ''}
+          ${this.options.classInput ? `class="${this.options.classInput}"` : ''}
+          tabindex="-1"
         >`
 
       if (
@@ -430,7 +584,7 @@ class MultipleSelect {
       }
 
       html.push(`
-        <li class="group ${classes}" ${style}>
+        <li class="group ${classes}" ${style} tabindex="${classes.includes('hide-radio') || row.disabled ? -1 : 0}">
         <label class="optgroup${this.options.single || row.disabled ? ' disabled' : ''}">
         ${group}${row.label}
         </label>
@@ -446,18 +600,15 @@ class MultipleSelect {
 
     const customStyle = this.options.styler(row)
     const style = customStyle ? `style="${customStyle}"` : ''
-    classes += row.classes || ''
 
-    if (level && this.options.single) {
-      classes += `option-level-${level} `
-    }
+    classes += `${row.classes || ''} option-level-${level} `
 
     if (row.divider) {
       return '<li class="option-divider"/>'
     }
 
     return [`
-      <li class="${multiple} ${classes}" ${title} ${style}>
+      <li class="${multiple} ${classes}" ${title} ${style} tabindex="${row.disabled ? -1 : 0}">
       <label class="${row.disabled ? 'disabled' : ''}">
       <input type="${type}"
         value="${row.value}"
@@ -465,15 +616,19 @@ class MultipleSelect {
         ${this.selectItemName}
         ${row.selected ? ' checked="checked"' : ''}
         ${row.disabled ? ' disabled="disabled"' : ''}
+        ${this.options.classInput ? `class="${this.options.classInput}"` : ''}
+        tabindex="-1"
       >
       <span>${row.text}</span>
       </label>
+      ${this.options.filterOnly && !this.options.single && !row.disabled ? `<span class="ms-filter-only" data-key="${row._key}" role="button" tabindex="0">${this.options.formatFilterOnly()}</span>` : ''}
       </li>
     `]
   }
 
   events () {
     this.$searchInput = this.$drop.find('.ms-search input')
+    this.$filterOptions = this.$drop.find('.ms-filter-option')
     this.$selectAll = this.$drop.find(`input[${this.selectAllName}]`)
     this.$selectGroups = this.$drop.find(`input[${this.selectGroupName}],span[${this.selectGroupName}]`)
     this.$selectItems = this.$drop.find(`input[${this.selectItemName}]:enabled`)
@@ -537,6 +692,7 @@ class MultipleSelect {
       ) {
         if (this.options.single) {
           const $items = this.$selectItems.closest('li').filter(':visible')
+
           if ($items.length) {
             this.setSelects([$items.first().find(`input[${this.selectItemName}]`).val()])
           }
@@ -548,6 +704,27 @@ class MultipleSelect {
         return
       }
       this.filter()
+    })
+
+    this.$filterOptions.off('click').on('click', e => {
+      const $this = $(e.currentTarget)
+      const filterType = $this.data('filter')
+
+      if (this.currentFilter === filterType) {
+        return
+      }
+
+      this.$filterOptions.removeClass('active')
+        .attr('aria-pressed', 'false')
+      $this.addClass('active')
+        .attr('aria-pressed', 'true')
+      this.currentFilter = filterType
+      this.filter(true) // Pass true to force filter execution
+    }).off('keydown').on('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        $(e.currentTarget).trigger('click')
+      }
     })
 
     this.$selectAll.off('click').on('click', e => {
@@ -564,15 +741,13 @@ class MultipleSelect {
         label: group.label,
         selected: group.selected,
         data: group._data,
-        children: group.children.map(child => {
-          return removeUndefined({
-            text: child.text,
-            value: child.value,
-            selected: child.selected,
-            disabled: child.disabled,
-            data: child._data
-          })
-        })
+        children: group.children.map(child => removeUndefined({
+          text: child.text,
+          value: child.value,
+          selected: child.selected,
+          disabled: child.disabled,
+          data: child._data
+        }))
       }))
     })
 
@@ -580,6 +755,16 @@ class MultipleSelect {
       const $this = $(e.currentTarget)
       const checked = $this.prop('checked')
       const option = findByParam(this.data, '_key', $this.data('key'))
+      const close = () => {
+        if (this.options.single && this.options.isOpen && !this.options.keepOpen) {
+          this.close()
+        }
+      }
+
+      if (this.options.onBeforeClick(option) === false) {
+        close()
+        return
+      }
 
       this._check(option, checked)
       this.options.onClick(removeUndefined({
@@ -589,8 +774,89 @@ class MultipleSelect {
         data: option._data
       }))
 
-      if (this.options.single && this.options.isOpen && !this.options.keepOpen) {
-        this.close()
+      if (this.options.filterOnly) {
+        $this.trigger('blur')
+      }
+
+      close()
+    })
+
+    const $filterOnly = this.$drop.find('.ms-filter-only')
+
+    const handleFilterOnly = $this => {
+      const option = findByParam(this.data, '_key', $this.data('key'))
+
+      if (this.options.onBeforeClick({ ...option, filterOnly: true }) === false) {
+        return
+      }
+
+      for (const row of this.data) {
+        if (row.type === 'optgroup') {
+          row.children.forEach(child => {
+            if (!child.divider) {
+              child.selected = false
+            }
+          })
+        } else if (!row.divider) {
+          row.selected = false
+        }
+      }
+      this._check(option, true)
+      this.options.onClick(removeUndefined({
+        text: option.text,
+        value: option.value,
+        selected: option.selected,
+        data: option._data,
+        filterOnly: true
+      }))
+    }
+
+    $filterOnly.off('click').on('click', e => {
+      e.stopPropagation()
+      handleFilterOnly($(e.currentTarget))
+    })
+
+    $filterOnly.off('keydown').on('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        e.stopPropagation()
+        handleFilterOnly($(e.currentTarget))
+      }
+    })
+
+    this.$ul.find('li').off('keydown').on('keydown', e => {
+      const $this = $(e.currentTarget)
+      let $divider
+      let $li
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault()
+          $divider = $this.prev('li.option-divider')
+          $li = $divider.length ? $divider : $this
+
+          this.focusSibling($li, 'prev')
+          break
+        case 'ArrowDown':
+          e.preventDefault()
+          $divider = $this.next('li.option-divider')
+          $li = $divider.length ? $divider : $this
+
+          this.focusSibling($li, 'next')
+          break
+        case 'Enter':
+          e.preventDefault()
+          if ($this.hasClass('ms-expand-collapse')) {
+            $this.find('button:visible').first().trigger('click')
+            break
+          }
+          $this.find('input').trigger('click')
+          if (this.options.single) {
+            this.$choice.trigger('focus')
+          }
+          break
+        default:
+          // ignore
       }
     })
   }
@@ -602,13 +868,15 @@ class MultipleSelect {
       computedWidth = window.getComputedStyle(this.$el[0]).width
 
       if (computedWidth === 'auto') {
-        computedWidth = this.$drop.outerWidth() + 20
+        computedWidth = this.$drop.outerWidth() + Constants.ICON_WIDTH_OFFSET
       }
     } else {
-      computedWidth = this.$el.outerWidth() + 20
+      computedWidth = this.$el.outerWidth() + Constants.ICON_WIDTH_OFFSET
     }
 
-    this.$parent.css('width', this.options.width || computedWidth)
+    if (this.options.width !== 'auto') {
+      this.$parent.css('width', this.options.width || computedWidth)
+    }
 
     this.$el.show().addClass('ms-offscreen')
   }
@@ -634,6 +902,7 @@ class MultipleSelect {
 
     if (this.options.container) {
       const offset = this.$drop.offset()
+
       this.$drop.appendTo($(this.options.container))
       this.$drop.offset({
         top: offset.top,
@@ -643,13 +912,7 @@ class MultipleSelect {
         .outerWidth(this.$parent.outerWidth())
     }
 
-    let maxHeight = this.options.maxHeight
-    if (this.options.maxHeightUnit === 'row') {
-      maxHeight = this.$drop.find('>ul>li').first().outerHeight() *
-        this.options.maxHeight
-    }
-    this.$drop.find('>ul').css('max-height', `${maxHeight}px`)
-    this.$drop.find('.multiple').css('width', `${this.options.multipleWidth}px`)
+    this.resetView()
 
     if (this.data.length && this.options.filter) {
       this.$searchInput.val('')
@@ -667,11 +930,30 @@ class MultipleSelect {
     if (this.options.container) {
       this.$parent.append(this.$drop)
       this.$drop.css({
-        'top': 'auto',
-        'left': 'auto'
+        top: 'auto',
+        left: 'auto'
       })
     }
     this.options.onClose()
+  }
+
+  resetView () {
+    let maxHeight = this.options.maxHeight
+
+    if (this.options.maxHeightUnit === 'row') {
+      maxHeight = this.$drop.find('>ul>li').first().outerHeight() *
+        this.options.maxHeight
+    }
+    this.$drop.find('>ul').css('max-height', `${maxHeight}px`)
+    this.$drop.find('.multiple').css('width', `${this.options.multipleWidth}px`)
+
+    if (this.options.maxVisibleDisabled !== undefined && !this.virtualScroll) {
+      if (this.isExpanded) {
+        this.expandDisabledList()
+      } else {
+        this.collapseDisabledList()
+      }
+    }
   }
 
   animateMethod (method) {
@@ -702,7 +984,7 @@ class MultipleSelect {
     let html = ''
 
     if (sl === 0) {
-      $span.addClass('placeholder').html(this.options.placeholder)
+      $span.addClass('ms-placeholder').html(this.options.placeholder)
     } else if (sl < this.options.minimumCountSelected) {
       html = textSelects.join(this.options.displayDelimiter)
     } else if (this.options.formatAllSelected() && sl === this.dataTotal) {
@@ -717,11 +999,42 @@ class MultipleSelect {
     }
 
     if (html) {
-      $span.removeClass('placeholder').html(html)
+      $span.removeClass('ms-placeholder').html(html)
     }
 
     if (this.options.displayTitle) {
       $span.prop('title', this.getSelects('text'))
+    }
+
+    if (this.options.width === 'auto') {
+      if (!this._autoWidthCanvas) {
+        this._autoWidthCanvas = document.createElement('canvas')
+        this._autoWidthContext = this._autoWidthCanvas.getContext('2d')
+      }
+
+      const context = this._autoWidthContext
+
+      if (context) {
+        const styles = window.getComputedStyle ? window.getComputedStyle($span[0]) : $span[0].style
+        const computedFont = styles.font && styles.font.trim()
+
+        context.font = computedFont ||
+          `${styles.fontWeight || 'normal'} ${styles.fontSize || '16px'} ${styles.fontFamily || 'sans-serif'}`
+
+        const textWidth = context.measureText($span.text()).width
+        const iconWidth = Constants.ICON_WIDTH_OFFSET + (this.$close.width() || 0)
+        const spanPadding = parseFloat($span.css('paddingLeft')) + parseFloat($span.css('paddingRight'))
+        const maxWidth = this.options.maxWidth && parseFloat(this.options.maxWidth)
+        let totalWidth = textWidth + iconWidth + spanPadding + 10
+
+        if (maxWidth && totalWidth > maxWidth) {
+          totalWidth = maxWidth
+        }
+
+        this.$parent.css('width', totalWidth)
+      } else {
+        this.$parent.css('width', 200)
+      }
     }
 
     // set selects to select
@@ -734,17 +1047,28 @@ class MultipleSelect {
   }
 
   updateSelected () {
+    const inputMap = {}
+
+    this.$drop.find('input[data-key]').each((i, el) => {
+      const $el = $(el)
+
+      inputMap[$el.data('key')] = $el
+    })
     for (let i = this.updateDataStart; i < this.updateDataEnd; i++) {
       const row = this.updateData[i]
-      this.$drop.find(`input[data-key=${row._key}]`).prop('checked', row.selected)
-        .closest('li').toggleClass('selected', row.selected)
+      const $el = inputMap[row._key]
+
+      if ($el) {
+        $el.prop('checked', row.selected)
+        $el.closest('li').toggleClass('selected', row.selected)
+      }
     }
 
-    const noResult = this.data.filter(row => row.visible).length === 0
+    const noResult = !this.data.some(row => row.visible && !row.divider)
 
     if (this.$selectAll.length) {
       this.$selectAll.prop('checked', this.allSelected)
-        .closest('li').toggle(!noResult)
+        .closest('li').toggleClass('selected', this.allSelected).toggle(!noResult)
     }
 
     this.$noResults.toggle(noResult)
@@ -754,11 +1078,16 @@ class MultipleSelect {
     }
   }
 
+  getData () {
+    return this.options.data
+  }
+
   getOptions () {
     // deep copy and remove data
-    const options = $.extend({}, this.options)
+    const options = extend({}, this.options)
+
     delete options.data
-    return $.extend(true, {}, options)
+    return extend(true, {}, options)
   }
 
   refreshOptions (options) {
@@ -766,7 +1095,7 @@ class MultipleSelect {
     if (compareObjects(this.options, options, true)) {
       return
     }
-    this.options = $.extend(this.options, options)
+    this.options = extend(this.options, options)
     this.destroy()
     this.init()
   }
@@ -774,19 +1103,20 @@ class MultipleSelect {
   // value html, or text, default: 'value'
   getSelects (type = 'value') {
     const values = []
+
     for (const row of this.data) {
       if (row.type === 'optgroup') {
         const selectedChildren = row.children.filter(child => child.selected)
+
         if (!selectedChildren.length) {
           continue
         }
 
         if (type === 'value' || this.options.single) {
-          values.push(...selectedChildren.map(child => {
-            return type === 'value' ? child._value || child[type] : child[type]
-          }))
+          values.push(...selectedChildren.map(child => type === 'value' ? child._value || child[type] : child[type]))
         } else {
           const value = []
+
           value.push('[')
           value.push(row.label)
           value.push(`: ${selectedChildren.map(child => child[type]).join(', ')}`)
@@ -804,12 +1134,15 @@ class MultipleSelect {
     let hasChanged = false
     const _setSelects = rows => {
       for (const row of rows) {
-        let selected = false
+        let selected
+
         if (type === 'text') {
-          selected = values.includes($(row.text).text().trim())
+          selected = values.includes($('<div>').html(row.text).text().trim())
         } else {
-          selected = values.includes(row._value || row.value)
-          if (!selected && row.value === +row.value + '') {
+          const value = toRaw(row._value || row.value)
+
+          selected = values.some(item => toRaw(item) === value)
+          if (!selected && row.value === `${+row.value}`) {
             selected = values.includes(+row.value)
           }
         }
@@ -845,6 +1178,7 @@ class MultipleSelect {
 
   check (value) {
     const option = findByParam(this.data, 'value', value)
+
     if (!option) {
       return
     }
@@ -853,6 +1187,7 @@ class MultipleSelect {
 
   uncheck (value) {
     const option = findByParam(this.data, 'value', value)
+
     if (!option) {
       return
     }
@@ -880,7 +1215,7 @@ class MultipleSelect {
   _checkAll (checked, ignoreUpdate) {
     for (const row of this.data) {
       if (row.type === 'optgroup') {
-        this._checkGroup(row, checked, true)
+        this._checkGroup(row, checked, true, !!ignoreUpdate)
       } else if (!row.disabled && !row.divider && (ignoreUpdate || row.visible)) {
         row.selected = checked
       }
@@ -893,10 +1228,10 @@ class MultipleSelect {
     }
   }
 
-  _checkGroup (group, checked, ignoreUpdate) {
+  _checkGroup (group, checked, ignoreUpdate, ignoreVisible = ignoreUpdate) {
     group.selected = checked
     group.children.forEach(row => {
-      if (!row.disabled && !row.divider && (ignoreUpdate || row.visible)) {
+      if (!row.disabled && !row.divider && (ignoreVisible || row.visible)) {
         row.selected = checked
       }
     })
@@ -919,10 +1254,8 @@ class MultipleSelect {
             child.selected = !child.selected
           }
         }
-      } else {
-        if (!row.divider) {
-          row.selected = !row.selected
-        }
+      } else if (!row.divider) {
+        row.selected = !row.selected
       }
     }
     this.initSelected()
@@ -945,50 +1278,277 @@ class MultipleSelect {
     this.init()
   }
 
-  filter (ignoreTrigger) {
-    const originalText = $.trim(this.$searchInput.val())
-    const text = originalText.toLowerCase()
+  resetFilter () {
+    if (this.options.filter) {
+      this.$searchInput.val('')
+      this.filter(true)
+    }
+  }
 
-    if (this.filterText === text) {
+  /**
+   * Move the focus to the previous/next visible list item, skipping the
+   * collapsed ones and the non-interactive helper items which cannot
+   * receive the focus
+   * @param {jQuery} $li - Current list item
+   * @param {string} method - `prev` or `next`
+   */
+  focusSibling ($li, method) {
+    let $sibling = $li[method]()
+
+    while (
+      $sibling.length &&
+        (
+          !$sibling.is(':visible') ||
+          $sibling.is('.ms-showing-count, .ms-no-results')
+        )
+    ) {
+      $sibling = $sibling[method]()
+    }
+
+    const $button = $sibling.find('button:visible').first()
+
+    if ($button.length) {
+      $button.trigger('focus')
+    } else {
+      $sibling.trigger('focus')
+    }
+  }
+
+  expandDisabledList () {
+    const expandFocused = this.$expand.is(':focus')
+
+    this.$drop.find('>ul>li').has('input:disabled').show()
+    this.$expand.hide()
+    this.$collapse.show()
+
+    if (expandFocused) {
+      this.$collapse.trigger('focus')
+    }
+    this.isExpanded = true
+  }
+
+  collapseDisabledList () {
+    const maxVisibleDisabled = this.options.maxVisibleDisabled
+    const collapseFocused = this.$collapse.is(':focus')
+
+    // Options inside optgroups are not moved to the end, so they are
+    // not limited by maxVisibleDisabled
+    const $disabledLi = this.$drop.find('>ul>li').has('input:disabled')
+      .not('.group, .ms-select-all, .ms-no-results, .option-level-1')
+
+    if ($disabledLi.length <= maxVisibleDisabled) {
+      this.$expandCollapse.hide()
+      this.isExpanded = false
       return
     }
-    this.filterText = text
+
+    this.$expandCollapse.show()
+    const visibleCount = Math.min(maxVisibleDisabled, $disabledLi.length)
+
+    $disabledLi.each((index, el) => {
+      if (index >= visibleCount) {
+        $(el).hide()
+      }
+    })
+
+    this.$expand.show()
+    this.$collapse.hide()
+
+    if (collapseFocused) {
+      this.$expand.trigger('focus')
+    }
+    this.isExpanded = false
+  }
+
+  /**
+   * Mark rows after the first `maxVisible` visible rows as hidden.
+   * Called after `initData()` and `filter()` so filtered results are
+   * also limited. Dividers don't count and follow the preceding option;
+   * optgroups are limited by their children. Groups hidden via the data
+   * API stay hidden and don't consume the limit. Stores the visible
+   * count before truncation in `visibleTotal` for the showing-count hint.
+   */
+  applyMaxVisible () {
+    const { maxVisible } = this.options
+    let count = 0
+    let visibleTotal = 0
+
+    const truncate = row => {
+      visibleTotal++
+      count++
+      row.visible = count <= maxVisible
+      return row.visible
+    }
+
+    let prevVisible = false
 
     for (const row of this.data) {
       if (row.type === 'optgroup') {
-        if (this.options.filterGroup) {
-          const visible = this.options.customFilter(
-            removeDiacritics(row.label.toLowerCase()),
-            removeDiacritics(text),
-            row.label, originalText)
+        prevVisible = false
 
-          row.visible = visible
-          for (const child of row.children) {
-            child.visible = visible
+        if (!row.visible) {
+          continue
+        }
+
+        let visibleChildren = 0
+
+        for (const child of row.children) {
+          if (child.divider) {
+            // divider follows the previous option
+            child.visible = prevVisible
+            continue
           }
+          if (child.visible) {
+            prevVisible = truncate(child)
+
+            if (child.visible) {
+              visibleChildren++
+            }
+          } else {
+            prevVisible = false
+          }
+        }
+        row.visible = visibleChildren > 0
+      } else if (row.divider) {
+        row.visible = prevVisible // divider follows the previous option
+      } else if (row.visible) {
+        prevVisible = truncate(row)
+      } else {
+        prevVisible = false
+      }
+    }
+
+    this.visibleTotal = visibleTotal
+  }
+
+  /**
+   * Filter by selection status
+   * @param {boolean} visible - Current visibility status
+   * @param {Object} row - Row data
+   * @returns {boolean} - Updated visibility status
+   */
+  filterBySelection (visible, row) {
+    // If filterOptions is not enabled, always treat as 'all' filter
+    if (
+      !visible ||
+      !this.options.filterOptions ||
+      this.currentFilter === 'all'
+    ) {
+      return visible
+    }
+
+    switch (this.currentFilter) {
+      case 'selected':
+        return row.selected
+      case 'unselected':
+        return !row.selected
+      default:
+        return true
+    }
+  }
+
+  filter (ignoreTrigger) {
+    const originalSearch = this.$searchInput.val().trim()
+    const search = originalSearch.toLowerCase()
+
+    // Return early only when the filter text hasn't changed and we're not forcing execution.
+    // Changes to filter type should be handled by calling this method with ignoreTrigger = true.
+    if (this.filterText === search && !ignoreTrigger) {
+      return
+    }
+    this.filterText = search
+
+    for (const row of this.data) {
+      // Skip divider rows as they don't have text to filter
+      if (row.divider) {
+        row.visible = true
+        continue
+      }
+
+      if (row.type === 'optgroup') {
+        if (this.options.filterGroup) {
+          const groupTextVisible = this.options.customFilter({
+            label: removeDiacritics(row.label.toString().toLowerCase()),
+            search: removeDiacritics(search),
+            originalLabel: row.label,
+            originalSearch,
+            row
+          })
+
+          // Check if any child passes the selection filter
+          let hasChildMatchingSelection = false
+
+          for (const child of row.children) {
+            // Skip divider children as they don't have selection state
+            if (child.divider) {
+              child.visible = true
+              continue
+            }
+
+            // Check child's selection status independently
+            const childMatchesSelection = this.filterBySelection(true, child)
+
+            if (childMatchesSelection) {
+              hasChildMatchingSelection = true
+            }
+
+            // Child is visible if both group text matches and child matches selection
+            child.visible = groupTextVisible && childMatchesSelection
+          }
+
+          // Group is visible if text matches AND at least one child matches selection
+          row.visible = groupTextVisible && hasChildMatchingSelection
         } else {
           for (const child of row.children) {
-            child.visible = this.options.customFilter(
-              removeDiacritics(child.text.toLowerCase()),
-              removeDiacritics(text),
-              child.text, originalText)
+            // Skip divider children as they don't have text to filter
+            if (child.divider) {
+              child.visible = true
+              continue
+            }
+
+            let visible = this.options.customFilter({
+              text: removeDiacritics(child.text.toString().toLowerCase()),
+              search: removeDiacritics(search),
+              originalText: child.text,
+              originalSearch,
+              row: child,
+              parent: row
+            })
+
+            // Further filter by selection status
+            visible = this.filterBySelection(visible, child)
+            child.visible = visible
           }
-          row.visible = row.children.filter(child => child.visible).length > 0
+          row.visible = row.children.filter(child => child.visible && !child.divider).length > 0
         }
       } else {
-        row.visible = this.options.customFilter(
-          removeDiacritics(row.text.toLowerCase()),
-          removeDiacritics(text),
-          row.text, originalText)
+        let visible = this.options.customFilter({
+          text: removeDiacritics(row.text.toString().toLowerCase()),
+          search: removeDiacritics(search),
+          originalText: row.text,
+          originalSearch,
+          row
+        })
+
+        // Further filter by selection status
+        visible = this.filterBySelection(visible, row)
+        row.visible = visible
       }
+    }
+
+    // Apply the maxVisible truncation on top of the filter result so that
+    // search and filterOptions results are also limited
+    if (this.options.maxVisible !== undefined) {
+      this.applyMaxVisible()
     }
 
     this.initListItems()
     this.initSelected(ignoreTrigger)
     this.updateSelected()
+    this.resetView()
 
     if (!ignoreTrigger) {
-      this.options.onFilter(text)
+      this.options.onFilter(originalSearch)
     }
   }
 
@@ -998,9 +1558,14 @@ class MultipleSelect {
     }
     this.$el.before(this.$parent).removeClass('ms-offscreen')
 
+    // Restore the original tabindex and clear the cache so a later init
+    // re-reads it from the DOM.
     if (this.tabIndex !== null) {
       this.$el.attr('tabindex', this.tabIndex)
+    } else {
+      this.$el.removeAttr('tabindex')
     }
+    this.$el.removeData('ms-tabindex')
 
     this.$parent.remove()
 

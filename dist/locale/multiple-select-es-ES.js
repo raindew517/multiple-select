@@ -1,28 +1,38 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(require('jquery')) :
   typeof define === 'function' && define.amd ? define(['jquery'], factory) :
-  (global = global || self, factory(global.jQuery));
-}(this, function ($) { 'use strict';
-
-  $ = $ && $.hasOwnProperty('default') ? $['default'] : $;
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.jQuery));
+})(this, (function ($) { 'use strict';
 
   /**
    * Multiple Select es-ES translation
    * Author: Zhixin Wen<wenzhixin2010@gmail.com>
    */
 
-  $.fn.multipleSelect.locales['es-ES'] = {
-    formatSelectAll: function formatSelectAll() {
+  $.fn.multipleSelect.locales['es-ES'] = $.fn.multipleSelect.locales['es'] = {
+    formatSelectAll() {
       return '[Seleccionar todo]';
     },
-    formatAllSelected: function formatAllSelected() {
+    formatAllSelected() {
       return 'Todos seleccionados';
     },
-    formatCountSelected: function formatCountSelected(count, total) {
-      return count + ' de ' + total + ' seleccionado';
+    formatCountSelected(count, total) {
+      return `${count} de ${total} seleccionado`;
     },
-    formatNoMatchesFound: function formatNoMatchesFound() {
+    formatNoMatchesFound() {
       return 'No se encontraron coincidencias';
+    },
+    formatFilterAll() {
+      return 'Todos';
+    },
+    formatFilterSelected() {
+      return 'Seleccionados';
+    },
+    formatFilterUnselected() {
+      return 'No seleccionados';
+    },
+    formatFilterOnly() {
+      return 'Solo este';
     }
   };
   $.extend($.fn.multipleSelect.defaults, $.fn.multipleSelect.locales['es-ES']);

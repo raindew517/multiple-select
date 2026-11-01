@@ -3,7 +3,7 @@
  * Author: Zhixin Wen<wenzhixin2010@gmail.com>
  */
 
-$.fn.multipleSelect.locales['en-US'] = {
+$.fn.multipleSelect.locales['en-US'] = $.fn.multipleSelect.locales['en'] = {
   formatSelectAll () {
     return '[Select all]'
   },
@@ -11,10 +11,31 @@ $.fn.multipleSelect.locales['en-US'] = {
     return 'All selected'
   },
   formatCountSelected (count, total) {
-    return count + ' of ' + total + ' selected'
+    return `${count} of ${total} selected`
   },
   formatNoMatchesFound () {
     return 'No matches found'
+  },
+  formatFilterAll () {
+    return 'All'
+  },
+  formatFilterSelected () {
+    return 'Selected'
+  },
+  formatFilterUnselected () {
+    return 'Unselected'
+  },
+  formatFilterOnly () {
+    return 'Only this'
+  },
+  formatExpand () {
+    return 'Show more'
+  },
+  formatCollapse () {
+    return 'Show less'
+  },
+  formatShowingCount (visible, total) {
+    return `Showing ${visible} of ${total}`
   }
 }
 

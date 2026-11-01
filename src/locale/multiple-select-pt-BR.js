@@ -1,0 +1,42 @@
+/**
+ * Multiple Select pt-BR translation
+ * Author: Lucas Aguiar<lucas99.abreu@gmail.com>
+ */
+
+$.fn.multipleSelect.locales['pt-BR'] = $.fn.multipleSelect.locales['pt'] = {
+  formatSelectAll () {
+    return '[Selecionar todos]'
+  },
+  formatAllSelected () {
+    return 'Todos selecionados'
+  },
+  formatCountSelected (count, total) {
+    return `${count} de ${total} selecionado(s)`
+  },
+  formatNoMatchesFound () {
+    return 'Nenhum resultado encontrado'
+  },
+  formatFilterAll () {
+    return 'Todos'
+  },
+  formatFilterSelected () {
+    return 'Selecionados'
+  },
+  formatFilterUnselected () {
+    return 'Não selecionados'
+  },
+  formatFilterOnly () {
+    return 'Apenas este'
+  },
+  formatExpand () {
+    return 'Mostrar mais'
+  },
+  formatCollapse () {
+    return 'Mostrar menos'
+  },
+  formatShowingCount (visible, total) {
+    return `Mostrando ${visible} de ${total}`
+  }
+}
+
+$.extend($.fn.multipleSelect.defaults, $.fn.multipleSelect.locales['pt-BR'])

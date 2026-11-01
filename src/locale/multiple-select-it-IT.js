@@ -3,7 +3,7 @@
  * Author: Giuseppe Lodi Rizzini
  */
 
-$.fn.multipleSelect.locales['it-IT'] = {
+$.fn.multipleSelect.locales['it-IT'] = $.fn.multipleSelect.locales['it'] = {
   formatSelectAll () {
     return '[Seleziona tutti]'
   },
@@ -11,10 +11,31 @@ $.fn.multipleSelect.locales['it-IT'] = {
     return 'Tutti selezionati'
   },
   formatCountSelected (count, total) {
-    return count + ' di ' + total + ' selezionati'
+    return `${count} di ${total} selezionati`
   },
   formatNoMatchesFound () {
     return 'Nessun risultato'
+  },
+  formatFilterAll () {
+    return 'Tutti'
+  },
+  formatFilterSelected () {
+    return 'Selezionati'
+  },
+  formatFilterUnselected () {
+    return 'Non selezionati'
+  },
+  formatFilterOnly () {
+    return 'Solo questo'
+  },
+  formatExpand () {
+    return 'Mostra di più'
+  },
+  formatCollapse () {
+    return 'Mostra meno'
+  },
+  formatShowingCount (visible, total) {
+    return `Visualizzazione di ${visible} di ${total}`
   }
 }
 

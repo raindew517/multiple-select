@@ -1,28 +1,38 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(require('jquery')) :
   typeof define === 'function' && define.amd ? define(['jquery'], factory) :
-  (global = global || self, factory(global.jQuery));
-}(this, function ($) { 'use strict';
-
-  $ = $ && $.hasOwnProperty('default') ? $['default'] : $;
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.jQuery));
+})(this, (function ($) { 'use strict';
 
   /**
    * Multiple Select it-IT translation
    * Author: Giuseppe Lodi Rizzini
    */
 
-  $.fn.multipleSelect.locales['it-IT'] = {
-    formatSelectAll: function formatSelectAll() {
+  $.fn.multipleSelect.locales['it-IT'] = $.fn.multipleSelect.locales['it'] = {
+    formatSelectAll() {
       return '[Seleziona tutti]';
     },
-    formatAllSelected: function formatAllSelected() {
+    formatAllSelected() {
       return 'Tutti selezionati';
     },
-    formatCountSelected: function formatCountSelected(count, total) {
-      return count + ' di ' + total + ' selezionati';
+    formatCountSelected(count, total) {
+      return `${count} di ${total} selezionati`;
     },
-    formatNoMatchesFound: function formatNoMatchesFound() {
+    formatNoMatchesFound() {
       return 'Nessun risultato';
+    },
+    formatFilterAll() {
+      return 'Tutti';
+    },
+    formatFilterSelected() {
+      return 'Selezionati';
+    },
+    formatFilterUnselected() {
+      return 'Non selezionati';
+    },
+    formatFilterOnly() {
+      return 'Solo questo';
     }
   };
   $.extend($.fn.multipleSelect.defaults, $.fn.multipleSelect.locales['it-IT']);

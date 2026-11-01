@@ -15,7 +15,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** String
 
-- **Detail:** The name of select element.
+- **Detail:** The name of the select element.
 
 - **Default:** `''`
 
@@ -32,6 +32,43 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 - **Default:** `''`
 
 - **Example:** <a href="/examples#placeholder.html">The Placeholder</a>
+
+## classes
+
+- **Attribute:** `data-classes`
+
+- **Type:** String
+
+- **Detail:** The class name of select.
+
+- **Default:** `''`
+
+- **Example:** <a href="/examples#classes.html">The Classes</a>
+
+## classPrefix
+
+- **Attribute:** `data-class-prefix`
+
+- **Type:** String
+
+- **Detail:** The class prefix of select.
+
+- **Default:** `''`
+
+- **Example:** <a href="/examples#classes.html">The Classes</a>
+
+
+## classInput
+
+- **Attribute:** `data-class-input`
+
+- **Type:** String
+
+- **Detail:** The class of input radio/checkbox.
+
+- **Default:** `''`
+
+- **Example:** <a href="/examples#themes.html">The Themes</a>
 
 ## data
 
@@ -143,7 +180,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
   * First tries for the locale as specified,
   * Then tries the locale with '_' translated to '-' and the region code upper cased,
   * Then tries the short locale code (i.e. `'zh'` instead of `'zh-CN'`),
-  * And finally will use the last locale file loaded (or the default locale if no locales loaded).
+  * Finally, we will use the last locale file loaded (or the default locale if no locales are loaded).
 
   If left `undefined` or an empty string, use the last locale loaded (or `'en-US'` if no locale files loaded).
 
@@ -181,7 +218,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** Boolean
 
-- **Detail:** Allows you to show the radio input when `single` is set to `true` (from v1.4.0).
+- **Detail:** Allows you to show the radio input when `single` is set to `true`.
 
 - **Default:** `false`
 
@@ -217,7 +254,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** Number
 
-- **Detail:** Show multiple items width.
+- **Detail:** Show the width of multiple items.
 
 - **Default:** `80`
 
@@ -234,6 +271,31 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 - **Default:** `undefined`
 
 - **Example:** <a href="/examples#custom-dropdown-width.html">Custom Dropdown Width</a>
+
+## maxWidth
+
+- **Attribute:** `data-max-width`
+
+- **Type:** Number | String
+
+- **Detail:** Define the maximum width of the select when `width: 'auto'` is set. If the auto-calculated width exceeds this value, the width will be capped at `maxWidth`.
+
+- **Default:** `undefined`
+
+- **Example:** <a href="/examples#custom-dropdown-width.html">Custom Dropdown Width</a>
+
+## size
+
+- **Attribute:** `data-size`
+
+- **Type:** String
+
+- **Detail:** The size of select.
+
+- **Default:** `''`
+
+- **Example:** <a href="/examples#classes.html">The Classes</a>
+
 
 ## dropWidth
 
@@ -271,6 +333,30 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Example:** <a href="/examples#max-height-unit.html">Max Height Unit</a>
 
+## maxVisibleDisabled
+
+- **Attribute:** `data-max-visible-disabled`
+
+- **Type:** Number
+
+- **Detail:** Define the maximum number of visible disabled options in the dropdown list. When disabled options exceed this value, shows expand/collapse buttons. Disabled options are moved to the end of the list, which also affects the order returned by `getSelects` and shown in the selected summary. Options inside optgroups are not limited. Set to `undefined` to disable. This option is ignored when the list is large enough to enable virtual scrolling.
+
+- **Default:** `undefined`
+
+- **Example:** <a href="/examples#max-visible-disabled.html">Max Visible Disabled</a>
+
+## maxVisible
+
+- **Attribute:** `data-max-visible`
+
+- **Type:** Number
+
+- **Detail:** Define the maximum number of options rendered in the dropdown list to improve performance with large data sets. Must be a positive integer. Only the first N options (in original data order, options inside optgroups are also limited) are rendered in the DOM. Search and `filterOptions` results are also limited to the first N matches — enter a more specific keyword to narrow the results. The search box is enabled automatically when the data exceeds this value. A hint showing the visible and total count is displayed at the bottom of the list whenever options are truncated, including search and filter results. "Select all" only checks the visible options. Options beyond the first N, including selected ones, are not displayed in the list (use a more specific search to locate them). When combined with `maxVisibleDisabled`, the visible set is determined by the original data order, while the rendered order follows the `maxVisibleDisabled` reordering (disabled options moved to the end).
+
+- **Default:** `undefined`
+
+- **Example:** <a href="/examples#max-visible.html">Max Visible</a>
+
 ## position
 
 - **Attribute:** `data-position`
@@ -289,7 +375,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** Boolean
 
-- **Detail:** Display selected values instead text.
+- **Detail:** Display selected values instead of text.
 
 - **Default:** `false`
 
@@ -313,7 +399,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** String
 
-- **Detail:** Custom the display delimiter.
+- **Detail:** Customize the display delimiter.
 
 - **Default:** `, `
 
@@ -325,7 +411,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** Number
 
-- **Detail:** `formatCountSelected` will be shown only if more than `minimumCountSelected` items where selected.
+- **Detail:** `formatCountSelected` will be shown only if more than `minimumCountSelected` items were selected.
 
 - **Default:** `3`
 
@@ -373,7 +459,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** Boolean
 
-- **Detail:** Open the select dropdown by hover instead of click.
+- **Detail:** Open the select dropdown by hovering instead of clicking.
 
 - **Default:** `false`
 
@@ -385,7 +471,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** object
 
-- **Detail:** Define custom container to solve the cut off problem for example parent node is `overflow: hidden`.
+- **Detail:** Define a custom container to solve the cut-off problem. For example, the parent node is `overflow: hidden`.
 
 - **Default:** `null`
 
@@ -415,6 +501,30 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Example:** <a href="/examples#filter-group.html">Filter Only Optgroup</a>
 
+## filterOptions
+
+- **Attribute:** `data-filter-options`
+
+- **Type:** Boolean
+
+- **Detail:** Show filter options (All, Selected, Unselected) in the filter. This option only works with multiple select. Note: This option requires `filter` to be enabled (`filter: true`).
+
+- **Default:** `false`
+
+- **Example:** <a href="/examples#filter-options.html">Filter Options</a>
+
+## filterOnly
+
+- **Attribute:** `data-filter-only`
+
+- **Type:** Boolean
+
+- **Detail:** Show a "filter only" button on each option in multiple select mode. When clicked, all options are unchecked and only the clicked option is selected. Only works with multiple select (not single select).
+
+- **Default:** `false`
+
+- **Example:** <a href="/examples#filter-only.html">Filter Only</a>
+
 ## filterPlaceholder
 
 - **Attribute:** `data-filter-placeholder`
@@ -433,7 +543,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** Boolean
 
-- **Detail:** Speed up keyboard use. Enter filter text and then hit `enter` or `space` will auto click `select all` and close the dropdown.
+- **Detail:** Speed up keyboard use. Enter filter text and then hit `enter` or `space`. It will auto-click `select all` and close the dropdown.
 
 - **Default:** `false`
 
@@ -445,11 +555,23 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** Number
 
-- **Detail:** Auto enable filter when the data(options) length is more than the set number (from 1.4.1).
+- **Detail:** Auto enable filter when the data(options) length is more than the set number.
 
 - **Default:** `undefined`
 
 - **Example:** <a href="/examples#filter-by-data-length.html">Filter By Data Length</a>
+
+## filterSelectAll
+
+- **Attribute:** `data-filter-select-all`
+
+- **Type:** Boolean
+
+- **Detail:** Show select all checkbox in the filter.
+
+- **Default:** `undefined`
+
+- **Example:** <a href="/examples#filter-select-all.html">Filter Select All</a>
 
 ## customFilter
 
@@ -457,9 +579,9 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** function
 
-- **Detail:** The custom filter function, return boolean to filter or not, contains parameter: `label, text, originalLabel, originalText` (from 1.4.1).
+- **Detail:** The custom filter function returns a boolean to filter or not, containing parameter: `{ text, label, search }`.
 
-- **Default:** `{ return label.includes(text) }`
+- **Default:** `{ return (label || text).includes(search) }`
 
 - **Example:** <a href="/examples#custom-filter.html">Custom Filter</a>
 
@@ -481,7 +603,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** undefined
 
-- **Detail:** Define the animate of open or close the dropdown. Can be `undefined`, `'fade'` and `'slide'`.
+- **Detail:** Define the animation of opening or closing the dropdown. It can be `undefined`, `'fade'` and `'slide'`.
 
 - **Default:** `undefined`
 
@@ -493,7 +615,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** function
 
-- **Detail:** The item styler function, return style string to custom the item style, contains parameter: `row`. (updated 1.4.1)
+- **Detail:** The item styler function returns a style string to custom the item style, containing the parameter: `row`. (updated 1.4.1)
 
 - **Default:** `{ return false }`
 
@@ -505,7 +627,7 @@ The Options are defined in `jQuery.fn.multipleSelect.defaults`.
 
 - **Type:** function
 
-- **Detail:** The item textTemplate function, return string to custom the item text, contains parameter: `$elm`.
+- **Detail:** The item textTemplate function returns a string to customize the item text, containing the parameter `$elm`.
 
 - **Default:** `{ return $elm[0].innerHTML }`
 

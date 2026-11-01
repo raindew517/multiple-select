@@ -1,10 +1,14 @@
-const VERSION = '1.5.2'
-const BLOCK_ROWS = 50
+const VERSION = '2.4.0'
+const BLOCK_ROWS = 500
 const CLUSTER_BLOCKS = 4
+const ICON_WIDTH_OFFSET = 20
 
 const DEFAULTS = {
   name: '',
   placeholder: '',
+  classes: '',
+  classPrefix: '',
+  classInput: '',
   data: undefined,
   locale: undefined,
 
@@ -15,9 +19,13 @@ const DEFAULTS = {
   hideOptgroupCheckboxes: false,
   multipleWidth: 80,
   width: undefined,
+  maxWidth: undefined,
+  size: undefined,
   dropWidth: undefined,
   maxHeight: 250,
   maxHeightUnit: 'px',
+  maxVisibleDisabled: undefined,
+  maxVisible: undefined,
   position: 'bottom',
 
   displayValues: false,
@@ -33,11 +41,14 @@ const DEFAULTS = {
 
   filter: false,
   filterGroup: false,
+  filterOptions: false,
   filterPlaceholder: '',
   filterAcceptOnEnter: false,
   filterByDataLength: undefined,
-  customFilter (label, text) { // originalLabel, originalText
-    return label.includes(text)
+  filterSelectAll: true,
+  filterOnly: false,
+  customFilter ({ text, label, search }) {
+    return (label || text).includes(search)
   },
 
   showClear: false,
@@ -74,6 +85,9 @@ const DEFAULTS = {
   onOptgroupClick () {
     return false
   },
+  onBeforeClick () {
+    return true
+  },
   onClick () {
     return false
   },
@@ -96,15 +110,37 @@ const EN = {
     return 'All selected'
   },
   formatCountSelected (count, total) {
-    return count + ' of ' + total + ' selected'
+    return `${count} of ${total} selected`
   },
   formatNoMatchesFound () {
     return 'No matches found'
+  },
+  formatFilterAll () {
+    return 'All'
+  },
+  formatFilterSelected () {
+    return 'Selected'
+  },
+  formatFilterUnselected () {
+    return 'Unselected'
+  },
+  formatFilterOnly () {
+    return 'Only this'
+  },
+  formatExpand () {
+    return 'Show more'
+  },
+  formatCollapse () {
+    return 'Show less'
+  },
+  formatShowingCount (visible, total) {
+    return `Showing ${visible} of ${total}`
   }
 }
 
 const METHODS = [
   'getOptions', 'refreshOptions',
+  'getData',
   'getSelects', 'setSelects',
   'enable', 'disable',
   'open', 'close',
@@ -112,7 +148,8 @@ const METHODS = [
   'checkAll', 'uncheckAll',
   'checkInvert',
   'focus', 'blur',
-  'refresh', 'destroy'
+  'refresh', 'resetFilter',
+  'destroy'
 ]
 
 Object.assign(DEFAULTS, EN)
@@ -125,6 +162,8 @@ const Constants = {
   CLUSTER_BLOCKS,
 
   DEFAULTS,
+
+  ICON_WIDTH_OFFSET,
 
   METHODS,
 

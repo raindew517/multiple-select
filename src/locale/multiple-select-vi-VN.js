@@ -3,7 +3,7 @@
  * Author: hoangbaovu <ineo.vn>
  */
 
-$.fn.multipleSelect.locales['vi-VN'] = {
+$.fn.multipleSelect.locales['vi-VN'] = $.fn.multipleSelect.locales['vi'] = {
   formatSelectAll () {
     return '[Tất cả]'
   },
@@ -11,10 +11,31 @@ $.fn.multipleSelect.locales['vi-VN'] = {
     return 'Chọn tất cả'
   },
   formatCountSelected (count, total) {
-    return 'Đã chọn ' + count + ' trong ' + total
+    return `Đã chọn ${count} trong ${total}`
   },
   formatNoMatchesFound () {
     return 'Không tìm thấy kết quả.'
+  },
+  formatFilterAll () {
+    return 'Tất cả'
+  },
+  formatFilterSelected () {
+    return 'Đã chọn'
+  },
+  formatFilterUnselected () {
+    return 'Chưa chọn'
+  },
+  formatFilterOnly () {
+    return 'Chỉ chọn mục này'
+  },
+  formatExpand () {
+    return 'Xem thêm'
+  },
+  formatCollapse () {
+    return 'Thu gọn'
+  },
+  formatShowingCount (visible, total) {
+    return `Đang hiển thị ${visible} trong ${total}`
   }
 }
 

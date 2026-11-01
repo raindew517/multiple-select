@@ -3,7 +3,7 @@
  * Author: Zhixin Wen<wenzhixin2010@gmail.com>
  */
 
-$.fn.multipleSelect.locales['ru-RU'] = {
+$.fn.multipleSelect.locales['ru-RU'] = $.fn.multipleSelect.locales['ru'] = {
   formatSelectAll () {
     return '[Выбрать все]'
   },
@@ -11,10 +11,31 @@ $.fn.multipleSelect.locales['ru-RU'] = {
     return 'Выбрано все'
   },
   formatCountSelected (count, total) {
-    return count + ' из ' + total + ' выбрано'
+    return `${count} из ${total} выбрано`
   },
   formatNoMatchesFound () {
     return 'Совпадений не найдено'
+  },
+  formatFilterAll () {
+    return 'Все'
+  },
+  formatFilterSelected () {
+    return 'Выбрано'
+  },
+  formatFilterUnselected () {
+    return 'Не выбрано'
+  },
+  formatFilterOnly () {
+    return 'Только это'
+  },
+  formatExpand () {
+    return 'Показать ещё'
+  },
+  formatCollapse () {
+    return 'Свернуть'
+  },
+  formatShowingCount (visible, total) {
+    return `Показано ${visible} из ${total}`
   }
 }
 

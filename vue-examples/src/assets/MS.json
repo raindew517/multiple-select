@@ -78,6 +78,11 @@
                 "description": "Use <code>placeholder</code> attribute or <code>placeholder: \\'\\'</code> option to set placeholder."
             },
             {
+                "title": "The Classes",
+                "url": "classes.html",
+                "description": "Use <code>classes, classPrefix, size</code> to define the class and size of select."
+            },
+            {
                 "title": "Single Radio",
                 "url": "single-radio.html",
                 "description": "Use <code>singleRadio: true</code> to show the radio input."
@@ -95,7 +100,7 @@
             {
                 "title": "Custom Dropdown Width",
                 "url": "custom-dropdown-width.html",
-                "description": "Use <code>dropWidth: 580</code> option to custom the dropdown width."
+                "description": "Use <code>dropWidth: 580</code> option to customize the dropdown width. Use <code>width: 'auto'</code> option to auto adjust the width based on the selected text and use <code>maxWidth: 80</code> to limit the auto width."
             },
             {
                 "title": "Max Height",
@@ -106,6 +111,16 @@
                 "title": "Max Height Unit",
                 "url": "max-height-unit.html",
                 "description": "Use <code>maxHeightUnit: \\'row\\'</code> option to set the max height unit."
+            },
+            {
+                "title": "Max Visible Disabled",
+                "url": "max-visible-disabled.html",
+                "description": "Use <code>maxVisibleDisabled: 2</code> option to limit visible disabled options with expand/collapse buttons. Disabled options exceeding this value will be hidden."
+            },
+            {
+                "title": "Max Visible",
+                "url": "max-visible.html",
+                "description": "Use <code>maxVisible: 10</code> option to render only the first 10 options to improve performance with large data sets. Search results are also limited to the first 10 matches — enter a more specific keyword to narrow the results."
             },
             {
                 "title": "The Position",
@@ -163,9 +178,14 @@
                 "description": "Use <code>filter: true</code> to enable filter feature."
             },
             {
-                "title": "Filter Only Optgroup",
+                "title": "Filter Group",
                 "url": "filter-group.html",
                 "description": "Use <code>filterGroup: true</code> to filter optgroups only and not options."
+            },
+            {
+                "title": "Filter Only",
+                "url": "filter-only.html",
+                "description": "Use <code>filterOnly: true</code> to show a \"filter only\" button on each option. Click it to select only that option."
             },
             {
                 "title": "Filter Placeholder",
@@ -217,6 +237,11 @@
     {
         "name": "Methods",
         "list": [
+            {
+                "title": "The getData",
+                "url": "getData.html",
+                "description": "Use <code>multipleSelect(\\'getData\\')</code> to get the loaded data."
+            },
             {
                 "title": "The getOptions",
                 "url": "getOptions.html",

@@ -3,7 +3,7 @@
  * Author: Zhixin Wen<wenzhixin2010@gmail.com>
  */
 
-$.fn.multipleSelect.locales['zh-CN'] = {
+$.fn.multipleSelect.locales['zh-CN'] = $.fn.multipleSelect.locales['zh'] = {
   formatSelectAll () {
     return '[全选]'
   },
@@ -11,10 +11,31 @@ $.fn.multipleSelect.locales['zh-CN'] = {
     return '已选择所有记录'
   },
   formatCountSelected (count, total) {
-    return '已从' + total + '条记录中选择' + count + '条'
+    return `已从${total}条记录中选择${count}条`
   },
   formatNoMatchesFound () {
     return '没有找到记录'
+  },
+  formatFilterAll () {
+    return '全部'
+  },
+  formatFilterSelected () {
+    return '已选择'
+  },
+  formatFilterUnselected () {
+    return '未选择'
+  },
+  formatFilterOnly () {
+    return '仅选此项'
+  },
+  formatExpand () {
+    return '展开更多'
+  },
+  formatCollapse () {
+    return '收起'
+  },
+  formatShowingCount (visible, total) {
+    return `已显示 ${visible} / ${total} 项`
   }
 }
 

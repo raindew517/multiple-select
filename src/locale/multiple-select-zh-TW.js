@@ -11,10 +11,31 @@ $.fn.multipleSelect.locales['zh-TW'] = {
     return '已選擇所有記錄'
   },
   formatCountSelected (count, total) {
-    return '已從' + total + '條記錄中選擇' + count + '條'
+    return `已從${total}條記錄中選擇${count}條`
   },
   formatNoMatchesFound () {
     return '沒有找到記錄'
+  },
+  formatFilterAll () {
+    return '全部'
+  },
+  formatFilterSelected () {
+    return '已選擇'
+  },
+  formatFilterUnselected () {
+    return '未選擇'
+  },
+  formatFilterOnly () {
+    return '僅選此項'
+  },
+  formatExpand () {
+    return '顯示更多'
+  },
+  formatCollapse () {
+    return '收起'
+  },
+  formatShowingCount (visible, total) {
+    return `已顯示 ${visible} / ${total} 項`
   }
 }
 

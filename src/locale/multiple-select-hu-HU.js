@@ -3,7 +3,7 @@
  * Author: Péter Báthory<bathory86p@gmail.com>
  */
 
-$.fn.multipleSelect.locales['hu-HU'] = {
+$.fn.multipleSelect.locales['hu-HU'] = $.fn.multipleSelect.locales['hu'] = {
   formatSelectAll () {
     return '[Összes kiválasztása]'
   },
@@ -11,10 +11,31 @@ $.fn.multipleSelect.locales['hu-HU'] = {
     return 'Összes kiválasztva'
   },
   formatCountSelected (count, total) {
-    return count + ' / ' + total + ' kiválasztva'
+    return `${count} / ${total} kiválasztva`
   },
   formatNoMatchesFound () {
     return 'Nincs találat'
+  },
+  formatFilterAll () {
+    return 'Összes'
+  },
+  formatFilterSelected () {
+    return 'Kiválasztva'
+  },
+  formatFilterUnselected () {
+    return 'Nincs kiválasztva'
+  },
+  formatFilterOnly () {
+    return 'Csak ez'
+  },
+  formatExpand () {
+    return 'Több mutatása'
+  },
+  formatCollapse () {
+    return 'Kevesebb mutatása'
+  },
+  formatShowingCount (visible, total) {
+    return `${visible} / ${total} megjelenítve`
   }
 }
 

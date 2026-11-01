@@ -1,28 +1,38 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(require('jquery')) :
   typeof define === 'function' && define.amd ? define(['jquery'], factory) :
-  (global = global || self, factory(global.jQuery));
-}(this, function ($) { 'use strict';
-
-  $ = $ && $.hasOwnProperty('default') ? $['default'] : $;
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.jQuery));
+})(this, (function ($) { 'use strict';
 
   /**
    * Multiple Select en-US translation
    * Author: Zhixin Wen<wenzhixin2010@gmail.com>
    */
 
-  $.fn.multipleSelect.locales['en-US'] = {
-    formatSelectAll: function formatSelectAll() {
+  $.fn.multipleSelect.locales['en-US'] = $.fn.multipleSelect.locales['en'] = {
+    formatSelectAll() {
       return '[Select all]';
     },
-    formatAllSelected: function formatAllSelected() {
+    formatAllSelected() {
       return 'All selected';
     },
-    formatCountSelected: function formatCountSelected(count, total) {
-      return count + ' of ' + total + ' selected';
+    formatCountSelected(count, total) {
+      return `${count} of ${total} selected`;
     },
-    formatNoMatchesFound: function formatNoMatchesFound() {
+    formatNoMatchesFound() {
       return 'No matches found';
+    },
+    formatFilterAll() {
+      return 'All';
+    },
+    formatFilterSelected() {
+      return 'Selected';
+    },
+    formatFilterUnselected() {
+      return 'Unselected';
+    },
+    formatFilterOnly() {
+      return 'Only this';
     }
   };
   $.extend($.fn.multipleSelect.defaults, $.fn.multipleSelect.locales['en-US']);
